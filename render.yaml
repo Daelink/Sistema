@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: daelink-recomendation
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python your_flask_file.py
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: GOOGLE_APPLICATION_CREDENTIALS
+        value: /path/to/your/credentials.json
