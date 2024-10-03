@@ -93,4 +93,32 @@ def recommend():
     if job_index is None:
         return jsonify({"error": "Nenhuma vaga correspondente encontrada."}), 404
 
-    cosine_similarities = linear_kernel(tfidf
+    cosine_similarities = linear_kernel(tfidf[job_index:job_index+1], tfidf).flatten()
+    related_docs_indices = cosine_similarities.argsort()[:-20:-1]
+
+    recommendations = [jobs[i] for i in related_docs_indices if i != job_index]
+    recommendations.insert(0, jobs[job_index]) 
+
+    return jsonify(recommendations)
+
+@app.route('/profile', methods=['POST'])
+def recommend_profile():
+    data = request.json
+    job_id = data.get('id')
+    print(f"Recebido ID da vaga: {job_id}")
+
+    job_index = next((index for (index, job) in enumerate(jobs) if job["id"] == job_id), None)
+
+    if job_index is None:
+        return jsonify({"error": "Nenhuma vaga encontrada com o ID fornecido."}), 404
+
+    cosine_similarities = linear_kernel(tfidf[job_index:job_index+1], tfidf).flatten()
+    related_docs_indices = cosine_similarities.argsort()[:-5:-1]
+
+    recommendations = [jobs[i] for i in related_docs_indices if i != job_index]
+    recommendations.insert(0, jobs[job_index]) 
+
+    return jsonify(recommendations)
+
+if __name__ == '__main__':
+    app.run(debug=True)
