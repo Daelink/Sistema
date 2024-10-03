@@ -1,4 +1,5 @@
 import os
+import json
 from flask import Flask, request, jsonify
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import linear_kernel
@@ -9,16 +10,14 @@ from firebase_admin import credentials, firestore
 app = Flask(__name__)
 CORS(app)
 
-# Configurar o Firebase
-cred_path = os.path.join(os.path.dirname(__file__), 'Database/daelink-projeto-firebase-adminsdk-knxeu-8e81c3b99a.json')
+# Carregar as credenciais do Firebase a partir da variável de ambiente
+firebase_credentials = os.getenv('FIREBASE_CREDENTIALS')
 
-if not os.path.exists(cred_path):
-    print("Arquivo de credenciais não encontrado. Verifique o caminho.")
+if firebase_credentials is None:
+    print("Credenciais do Firebase não encontradas. Verifique a configuração das variáveis de ambiente.")
 else:
-    print("Arquivo de credenciais encontrado.")
-
-cred = credentials.Certificate(cred_path)
-firebase_admin.initialize_app(cred)
+    cred = credentials.Certificate(json.loads(firebase_credentials))
+    firebase_admin.initialize_app(cred)
 
 db = firestore.client()
 
@@ -41,7 +40,6 @@ def get_jobs_from_firestore():
         jobs.append(job)
     return jobs
 
-
 jobs = get_jobs_from_firestore()
 
 for job in jobs:
@@ -60,30 +58,21 @@ def find_job_index_by_title(description):
             return index
     return None
 
-
 def find_job_index_by_similar_description(description):
-    # Verificação se a descrição fornecida é válida
     if not description:
         return None
 
-    # Crie uma lista com todas as descrições de trabalho
     job_descriptions = [job.get('descrição', '') for job in jobs]
-
-    # Adicione a descrição recebida à lista (será usada como referência)
     job_descriptions.append(description)
 
-    # Crie a matriz TF-IDF para todas as descrições
     tfidf_vectorizer = TfidfVectorizer()
     tfidf_matrix = tfidf_vectorizer.fit_transform(job_descriptions)
 
-    # Calcule a similaridade cosseno entre a descrição recebida e todas as vagas
     cosine_similarities = linear_kernel(tfidf_matrix[-1:], tfidf_matrix[:-1]).flatten()
 
-    # Encontre o índice da vaga mais similar
     most_similar_job_index = cosine_similarities.argmax()
 
-    # Retorne o índice da vaga mais similar se a similaridade for suficiente
-    if cosine_similarities[most_similar_job_index] > 0.1:  # Defina um limiar de similaridade
+    if cosine_similarities[most_similar_job_index] > 0.1:  # Limite de similaridade
         return most_similar_job_index
 
     return None
@@ -94,56 +83,14 @@ def recommend():
     data = request.json
     job_title = data.get('trabalho')
 
-    # Verifique se o job_title não é None
     if job_title is None:
         return jsonify({"error": "O campo 'descrição' é necessário."}), 400
 
     print(f"Recebido título da vaga: {job_title}")
 
-    # Chame a função de recomendação
     job_index = find_job_index_by_similar_description(job_title)
 
-    # Caso não encontre uma vaga correspondente
     if job_index is None:
         return jsonify({"error": "Nenhuma vaga correspondente encontrada."}), 404
 
-    # Calcular similaridades com base no TF-IDF
-    cosine_similarities = linear_kernel(tfidf[job_index:job_index+1], tfidf).flatten()
-    related_docs_indices = cosine_similarities.argsort()[:-20:-1]
-
-    # Preparar recomendações
-    recommendations = [jobs[i] for i in related_docs_indices if i != job_index]
-
-    # Colocar a vaga solicitada no início das recomendações
-    recommendations.insert(0, jobs[job_index]) 
-
-    return jsonify(recommendations)
-
-
-@app.route('/profile', methods=['POST'])
-def recommend_profile():
-    data = request.json
-    job_id = data.get('id')
-    print(f"Recebido ID da vaga: {job_id}")
-
-    # Encontre o índice da vaga com o ID correspondente
-    job_index = next((index for (index, job) in enumerate(jobs) if job["id"] == job_id), None)
-
-    if job_index is None:
-        return jsonify({"error": "Nenhuma vaga encontrada com o ID fornecido."}), 404
-
-    # Calcular similaridades com base no TF-IDF
-    cosine_similarities = linear_kernel(tfidf[job_index:job_index+1], tfidf).flatten()
-    related_docs_indices = cosine_similarities.argsort()[:-5:-1]
-
-    # Preparar recomendações
-    recommendations = [jobs[i] for i in related_docs_indices if i != job_index]
-
-    # Colocar a vaga solicitada no início das recomendações
-    recommendations.insert(0, jobs[job_index]) 
-
-    return jsonify(recommendations)
-
-
-if __name__ == '__main__':
-    app.run(debug=True)
+    cosine_similarities = linear_kernel(tfidf
