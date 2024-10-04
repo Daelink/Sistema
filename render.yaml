@@ -1,8 +1,0 @@
-services:
-  - type: web
-    name: seu-nome-do-serviço
-    env: python
-    plan: free
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "python app.py"  # Substitua "app.py" pelo seu arquivo
-    port: 5000  # Porta padrão que você definiu no seu código
