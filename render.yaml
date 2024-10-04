@@ -1,12 +1,8 @@
 services:
   - type: web
-    name: daelink-recomendation
+    name: seu-nome-do-serviço
     env: python
     plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: python your_flask_file.py
-    envVars:
-      - key: FLASK_ENV
-        value: production
-      - key: GOOGLE_APPLICATION_CREDENTIALS
-        value: /path/to/your/credentials.json
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python app.py"  # Substitua "app.py" pelo seu arquivo
+    port: 5000  # Porta padrão que você definiu no seu código
