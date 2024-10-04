@@ -28,12 +28,6 @@ cred = credentials.Certificate({
     "universe_domain": os.getenv('FIREBASE_UNIVERSE_DOMAIN')
 })
 
-if not os.path.exists(cred_path):
-    print("Arquivo de credenciais não encontrado. Verifique o caminho.")
-else:
-    print("Arquivo de credenciais encontrado.")
-
-cred = credentials.Certificate(cred_path)
 firebase_admin.initialize_app(cred)
 
 db = firestore.client()
