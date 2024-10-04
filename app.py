@@ -118,4 +118,5 @@ def recommend_profile():
     return jsonify(recommendations)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))  # Usar a porta fornecida pelo Render ou 5000 como padrão
+    app.run(host='0.0.0.0', port=port, debug=True)
